@@ -1,5 +1,5 @@
-import { integer, uuid, varchar, numeric, timestamp, date, pgEnum, pgTable } from "drizzle-orm/pg-core";
-
+import { integer, uuid, varchar, numeric, timestamp, date, pgEnum, pgTable, unique, check } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 export const measurementTypeEnum =
     pgEnum('measurement_type', ['reps', 'duration_seconds']);
@@ -18,7 +18,7 @@ export const users = pgTable('users', {
 export const workoutSession = pgTable('workout_session', {
     sessionId: uuid('session_id').defaultRandom().primaryKey(),
     userId: uuid('user_id').references(() =>
-        users.userId, { onDelete: "cascade" }),
+        users.userId, { onDelete: "cascade" }).notNull(),
     date: date('date', { mode: "date" }).defaultNow().notNull(),
     note: varchar('note', { length: 500 }),
     createdAt: timestamp('created_at', { mode: "date" }).defaultNow().notNull()
@@ -32,7 +32,9 @@ export const exerciseDefinition = pgTable('exercise_definition', {
         users.userId, { onDelete: "set null" }),
     definitionName: varchar('definition_name', { length: 50 }).notNull(),
     measurementType: measurementTypeEnum('measurement_type').notNull()
-});
+}, (table) => [
+    unique('exercise_definition_user_name_unique').on(table.userId, table.definitionName),
+]);
 
 export const exerciseInstance = pgTable('exercise_instance', {
     instanceId: uuid('instance_id').defaultRandom().primaryKey(),
@@ -41,9 +43,9 @@ export const exerciseInstance = pgTable('exercise_instance', {
     definitionId: uuid('definition_id').references(() =>
         exerciseDefinition.definitionId, { onDelete: "restrict" }).notNull(),
     exerciseOrder: integer('exercise_order').notNull()
-
-
-});
+}, (table) => [
+    unique('exercise_instance_session_order_unique').on(table.sessionId, table.exerciseOrder)
+]);
 
 export const exerciseSet = pgTable('exercise_set', {
     exerciseSetId: uuid('exercise_set_id').defaultRandom().primaryKey(),
@@ -54,4 +56,9 @@ export const exerciseSet = pgTable('exercise_set', {
     reps: integer('reps'),
     durationSeconds: integer('duration_seconds')
 
-});
+}, (table) => [
+    unique('exercise_set_instance_setnumber_unique').on(table.instanceId, table.setNumber),
+    check('exercise_set_weight_nonneg', sql`${table.weight} >= 0`),
+    check('exercise_set_reps_nonneg', sql`${table.reps} >= 0`),
+    check('exercise_set_duration_nonneg', sql`${table.durationSeconds} >= 0`),
+]);
