@@ -8,7 +8,7 @@ The workout tracker is intended to be a portfolio and learning project that simu
 - PostgreSQL 
 - Express.js
 - Node.js
-- TypeScript (migration in progress)
+- TypeScript
 - Drizzle ORM
 
 ## Planned
